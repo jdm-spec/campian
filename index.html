@@ -85,69 +85,97 @@
   </div>
 
   <script>
-    const uploadBtn = document.getElementById('uploadBtn');
-    const fileInput = document.getElementById('fileInput');
-    const cropModal = document.getElementById('cropModal');
-    const cropImage = document.getElementById('cropImage');
-    const closeModal = document.getElementById('closeModal');
-    const applyCrop = document.getElementById('applyCrop');
-    const insertedPhoto = document.getElementById('insertedPhoto');
-    const nameInput = document.getElementById('nameInput');
-    const insertedName = document.getElementById('insertedName');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const posterArea = document.getElementById('posterArea');
-    let cropper;
+  const uploadBtn = document.getElementById('uploadBtn');
+  const fileInput = document.getElementById('fileInput');
+  const cropModal = document.getElementById('cropModal');
+  const cropImage = document.getElementById('cropImage');
+  const closeModal = document.getElementById('closeModal');
+  const applyCrop = document.getElementById('applyCrop');
+  const insertedPhoto = document.getElementById('insertedPhoto');
+  const nameInput = document.getElementById('nameInput');
+  const insertedName = document.getElementById('insertedName');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const posterArea = document.getElementById('posterArea');
+  let cropper;
 
-    uploadBtn.addEventListener('click', () => fileInput.click());
+  // Open file picker
+  uploadBtn.addEventListener('click', () => fileInput.click());
 
-    fileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        cropImage.src = reader.result;
-        cropModal.classList.remove('hidden');
-        if (cropper) cropper.destroy();
-        setTimeout(() => {
-          cropper = new Cropper(cropImage, {
-            aspectRatio: 3/4,
-            viewMode: 1,
-            autoCropArea: 1,
-          });
-        }, 100);
-      };
-      reader.readAsDataURL(file);
-    });
-
-    applyCrop.addEventListener('click', () => {
-      const canvas = cropper.getCroppedCanvas({
-        width: 400,
-        height: 500,
-      });
-      insertedPhoto.src = canvas.toDataURL();
-      insertedPhoto.classList.remove('hidden');
-      cropModal.classList.add('hidden');
-    });
-
-    closeModal.addEventListener('click', () => {
-      cropModal.classList.add('hidden');
+  // Load & crop image
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      cropImage.src = reader.result;
+      cropModal.classList.remove('hidden');
       if (cropper) cropper.destroy();
-    });
+      setTimeout(() => {
+        cropper = new Cropper(cropImage, {
+          aspectRatio: 3 / 4,
+          viewMode: 1,
+          autoCropArea: 1,
+        });
+      }, 100);
+    };
+    reader.readAsDataURL(file);
+  });
 
-    nameInput.addEventListener('input', () => {
-      insertedName.textContent = nameInput.value;
+  // Apply crop
+  applyCrop.addEventListener('click', () => {
+    const canvas = cropper.getCroppedCanvas({
+      width: 400,
+      height: 500,
     });
+    insertedPhoto.src = canvas.toDataURL();
+    insertedPhoto.classList.remove('hidden');
+    cropModal.classList.add('hidden');
+  });
 
-    downloadBtn.addEventListener('click', () => {
-      html2canvas(posterArea, { useCORS: true, scale: 3 }).then(canvas => {
-        const link = document.createElement('a');
-        link.download = 'sibaq_poster.png';
-        link.href = canvas.toDataURL();
-        link.click();
+  // Close modal
+  closeModal.addEventListener('click', () => {
+    cropModal.classList.add('hidden');
+    if (cropper) cropper.destroy();
+  });
+
+  // Update name live
+  nameInput.addEventListener('input', () => {
+    insertedName.textContent = nameInput.value;
+  });
+
+  // 🖼️ Export at 400% quality
+  downloadBtn.addEventListener('click', async () => {
+    const originalScrollY = window.scrollY;
+    window.scrollTo(0, 0);
+
+    try {
+      const scale = 4; // 400% HD clarity
+      const canvas = await html2canvas(posterArea, {
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+        scale: scale * window.devicePixelRatio, // super crisp
+        imageTimeout: 0,
+        removeContainer: true,
       });
-    });
-  </script>
+
+      // Create download link
+      const link = document.createElement('a');
+      link.download = 'sibaq_poster_hd.png';
+      link.href = canvas.toDataURL('image/png', 1.0); // 100% lossless quality
+      link.click();
+
+    } catch (err) {
+      console.error('❌ Error generating image:', err);
+      alert('Image generation failed. Please try again.');
+    } finally {
+      window.scrollTo(0, originalScrollY);
+    }
+  });
+</script>
 </body>
 </html>
+
 
 
