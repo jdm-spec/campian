@@ -80,120 +80,86 @@
     </div>
   </div>
 
-  <script>
-  const uploadBtn = document.getElementById('uploadBtn');
-  const fileInput = document.getElementById('fileInput');
-  const cropModal = document.getElementById('cropModal');
-  const cropImage = document.getElementById('cropImage');
-  const closeModal = document.getElementById('closeModal');
-  const applyCrop = document.getElementById('applyCrop');
-  const insertedPhoto = document.getElementById('insertedPhoto');
-  const nameInput = document.getElementById('nameInput');
-  const insertedName = document.getElementById('insertedName');
-  const downloadBtn = document.getElementById('downloadBtn');
-  const posterArea = document.getElementById('posterArea');
-  let cropper;
+ <script>
+    const uploadBtn = document.getElementById("uploadBtn");
+    const fileInput = document.getElementById("fileInput");
+    const cropModal = document.getElementById("cropModal");
+    const cropImage = document.getElementById("cropImage");
+    const closeModal = document.getElementById("closeModal");
+    const applyCrop = document.getElementById("applyCrop");
+    const userPhoto = document.getElementById("userPhoto");
+    const nameInput = document.getElementById("nameInput");
+    const userName = document.getElementById("userName");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const posterArea = document.getElementById("posterArea");
+    let cropper;
 
-  // Upload click
-  uploadBtn.addEventListener('click', () => fileInput.click());
+    // Open File Picker
+    uploadBtn.addEventListener("click", () => fileInput.click());
 
-  // Image load and crop
-  fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      cropImage.src = reader.result;
-      cropModal.classList.remove('hidden');
-      if (cropper) cropper.destroy();
-      setTimeout(() => {
-        cropper = new Cropper(cropImage, {
-          aspectRatio: 3 / 4,
-          viewMode: 1,
-          autoCropArea: 1,
-        });
-      }, 100);
-    };
-    reader.readAsDataURL(file);
-  });
-
-  // Apply crop
-  applyCrop.addEventListener('click', () => {
-    const canvas = cropper.getCroppedCanvas({
-      width: 400,
-      height: 500,
+    // Load and Crop Image
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        cropImage.src = reader.result;
+        cropModal.classList.remove("hidden");
+        if (cropper) cropper.destroy();
+        setTimeout(() => {
+          cropper = new Cropper(cropImage, {
+            aspectRatio: 1,
+            viewMode: 1,
+            autoCropArea: 1,
+          });
+        }, 100);
+      };
+      reader.readAsDataURL(file);
     });
-    insertedPhoto.src = canvas.toDataURL('image/jpeg', 1.0);
-    insertedPhoto.classList.remove('hidden');
-    cropModal.classList.add('hidden');
-  });
 
-  // Close crop modal
-  closeModal.addEventListener('click', () => {
-    cropModal.classList.add('hidden');
-    if (cropper) cropper.destroy();
-  });
-
-  // Live name update
-  nameInput.addEventListener('input', () => {
-    insertedName.textContent = nameInput.value;
-  });
-
- downloadBtn.addEventListener('click', async () => {
-    try {
-      const scale = 4; // 400% HD clarity
-      const rect = posterArea.getBoundingClientRect();
-
-      // Create off-screen canvas
-      const canvas = document.createElement('canvas');
-      const width = rect.width * scale;
-      const height = rect.height * scale;
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.scale(scale, scale);
-
-      // Use html2canvas on cloned node to avoid layout issues
-      const cloned = posterArea.cloneNode(true);
-      cloned.style.transform = "scale(1)";
-      cloned.style.transformOrigin = "0 0";
-      cloned.style.width = rect.width + "px";
-      cloned.style.height = rect.height + "px";
-      cloned.style.borderRadius = "0";
-      cloned.style.margin = "0";
-      cloned.style.padding = "0";
-      document.body.appendChild(cloned);
-      cloned.style.position = "absolute";
-      cloned.style.left = "-9999px";
-
-      const canvasImage = await html2canvas(cloned, {
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        scale: scale,
-        width: rect.width,
-        height: rect.height,
-        logging: false
+    // Apply Crop
+    applyCrop.addEventListener("click", () => {
+      const canvas = cropper.getCroppedCanvas({
+        width: 500,
+        height: 500,
       });
+      userPhoto.src = canvas.toDataURL();
+      userPhoto.classList.remove("hidden");
+      cropModal.classList.add("hidden");
+    });
 
-      document.body.removeChild(cloned);
+    // Close Modal
+    closeModal.addEventListener("click", () => {
+      cropModal.classList.add("hidden");
+      if (cropper) cropper.destroy();
+    });
 
-      // Convert to Blob for high-quality download
-      canvasImage.toBlob((blob) => {
-        const link = document.createElement('a');
-        link.download = 'sibaq_poster_hd.png';
-        link.href = URL.createObjectURL(blob);
+    // Update Name
+    nameInput.addEventListener("input", () => {
+      userName.textContent = nameInput.value;
+    });
+
+    // 💎 High Quality Download (4× scale for 400% clarity)
+    downloadBtn.addEventListener("click", () => {
+      html2canvas(posterArea, {
+        scale: 4,             // 4× resolution boost
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+        imageTimeout: 0,
+        allowTaint: true,
+        removeContainer: true
+      }).then(canvas => {
+        const link = document.createElement("a");
+        link.download = "raheemiyya campain.jpg";
+        link.href = canvas.toDataURL("image/png", 1.0); // Max quality
         link.click();
-        URL.revokeObjectURL(link.href);
-      }, 'image/png', 1.0);
-
-    } catch (err) {
-      console.error('❌ Error generating image:', err);
-      alert('Unable to generate HD image. Please try again.');
-    }
-  });
-  });
-</script>
+      }).catch(err => {
+        console.error("❌ Image generation failed:", err);
+        alert("❌ Unable to generate HD image. Please try again.");
+      });
+    });
+  </script>
 
 </body>
 </html>
