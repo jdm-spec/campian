@@ -26,20 +26,18 @@
     <!-- Poster Preview -->
     <div id="posterArea" class="relative w-full md:w-[60%] flex justify-center items-center overflow-hidden p-2 md:p-4  rounded-2xl">
       <!-- Background -->
-      <img id="posterBg" src="image.jpg" alt="Poster Background" class="rounded-2xl w-full object-contain pointer-events-none select-none" />
+      <img id="posterBg" src="22.jpg" alt="Poster Background" class="rounded-2xl w-full object-contain pointer-events-none select-none" />
 
       <!-- User Photo -->
-      <img id="userPhoto" class="absolute top-[47%] left-[13%] w-[32%] h-[34.3%] object-cover rounded-[0px_50px_0px_50px]   shadow-md hidden" alt="User Photo">
+      <img id="userPhoto" class="absolute top-[47%] left-[13%] w-[32%] h-[34.3%] object-cover rounded-[0px_20px_0px_20px]   shadow-md hidden" alt="User Photo">
 
       <!-- User Name -->
-      <span id="userName" class="absolute top-[81.3%] left-[25%] text-[#f5ffdc] font-semibold text-base md:text-xl" style="font-family: Anek Malayalam, sans-serif;" ></span>
+      <span id="userName" class="absolute top-[80.3%] left-[25%] text-[#f5ffdc] font-semibold text-base md:text-xl" style="font-family: Anek Malayalam, sans-serif;" ></span>
     </div>
 
     <!-- Controls -->
     <div class="flex flex-col justify-center items-center gap-4 w-full md:w-[40%]">
-      <h2 class="text-xl md:text-2xl font-bold text-center text-gray-800">
-        Participate in <br> SIBAQ Poster Campaign
-      </h2>
+      
 
       <input id="nameInput" type="text" placeholder="Enter Your Name"
         class="border border-gray-300 rounded-full px-4 py-2 w-64 max-w-full text-center focus:outline-none focus:ring-2 focus:ring-pink-500">
@@ -79,34 +77,33 @@
 
   <!-- JavaScript -->
   <script>
-    const uploadBtn = document.getElementById("uploadBtn");
-    const fileInput = document.getElementById("fileInput");
-    const cropModal = document.getElementById("cropModal");
-    const cropImage = document.getElementById("cropImage");
-    const closeModal = document.getElementById("closeModal");
-    const applyCrop = document.getElementById("applyCrop");
-    const userPhoto = document.getElementById("userPhoto");
-    const nameInput = document.getElementById("nameInput");
-    const userName = document.getElementById("userName");
-    const downloadBtn = document.getElementById("downloadBtn");
-    const posterArea = document.getElementById("posterArea");
+    const uploadBtn = document.getElementById('uploadBtn');
+    const fileInput = document.getElementById('fileInput');
+    const cropModal = document.getElementById('cropModal');
+    const cropImage = document.getElementById('cropImage');
+    const closeModal = document.getElementById('closeModal');
+    const applyCrop = document.getElementById('applyCrop');
+    const userPhoto = document.getElementById('userPhoto');
+    const nameInput = document.getElementById('nameInput');
+    const userName = document.getElementById('userName');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const posterArea = document.getElementById('posterArea');
     let cropper;
-
-    // Open File Picker
-    uploadBtn.addEventListener("click", () => fileInput.click());
-
-    // Load and Crop Image
-    fileInput.addEventListener("change", (e) => {
+    
+    // 📸 Upload photo
+    uploadBtn.addEventListener('click', () => fileInput.click());
+    
+    fileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = () => {
         cropImage.src = reader.result;
-        cropModal.classList.remove("hidden");
+        cropModal.classList.remove('hidden');
         if (cropper) cropper.destroy();
         setTimeout(() => {
           cropper = new Cropper(cropImage, {
-            aspectRatio: 1,
+            aspectRatio: 3 / 4,
             viewMode: 1,
             autoCropArea: 1,
           });
@@ -114,51 +111,80 @@
       };
       reader.readAsDataURL(file);
     });
-
-    // Apply Crop
-    applyCrop.addEventListener("click", () => {
+    
+    // ✅ Apply cropped image
+    applyCrop.addEventListener('click', () => {
       const canvas = cropper.getCroppedCanvas({
         width: 500,
-        height: 500,
+        height: 650,
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high',
       });
-      userPhoto.src = canvas.toDataURL();
-      userPhoto.classList.remove("hidden");
-      cropModal.classList.add("hidden");
+      userPhoto.src = canvas.toDataURL('image/jpeg', 1.0);
+      userPhoto.classList.remove('hidden');
+      cropModal.classList.add('hidden');
+      cropper.destroy();
     });
-
-    // Close Modal
-    closeModal.addEventListener("click", () => {
-      cropModal.classList.add("hidden");
+    
+    closeModal.addEventListener('click', () => {
+      cropModal.classList.add('hidden');
       if (cropper) cropper.destroy();
     });
-
-    // Update Name
-    nameInput.addEventListener("input", () => {
-      userName.textContent = nameInput.value;
+    
+    // ✍️ Auto-update and center name
+    nameInput.addEventListener('input', () => {
+      const text = nameInput.value.trim();
+      userName.textContent = text;
+    
+      // Reset font size to base
+      userName.style.fontSize = "19px";
+    
+      // Auto scale down if name too long
+      const maxWidth = posterArea.offsetWidth * 0.5; // 50% width
+      while (userName.scrollWidth > maxWidth && parseFloat(userName.style.fontSize) > 12) {
+        userName.style.fontSize = (parseFloat(userName.style.fontSize) - 1) + "px";
+      }
+    
+      // Keep name perfectly centered
+      userName.style.left = "30%";
+      userName.style.bottom = "8%";
+      userName.style.transform = "translateX(-50%)";
     });
-
-    // 💎 High Quality Download (4× scale for 400% clarity)
-    downloadBtn.addEventListener("click", () => {
-      html2canvas(posterArea, {
-        scale: 4,             // 4× resolution boost
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-        imageTimeout: 0,
-        allowTaint: true,
-        removeContainer: true
-      }).then(canvas => {
-        const link = document.createElement("a");
-        link.download = "raheemiyya campain.jpg";
-        link.href = canvas.toDataURL("image/png", 1.0); // Max quality
-        link.click();
-      }).catch(err => {
-        console.error("❌ Image generation failed:", err);
-        alert("❌ Unable to generate HD image. Please try again.");
-      });
+    
+    // 💾 Download HD image
+    downloadBtn.addEventListener('click', async () => {
+      try {
+        const scale = 4;
+        const rect = posterArea.getBoundingClientRect();
+    
+        const canvas = await html2canvas(posterArea, {
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: null,
+          scale: scale,
+          logging: false,
+          scrollX: 0,
+          scrollY: 0,
+          width: rect.width,
+          height: rect.height,
+        });
+    
+        canvas.toBlob((blob) => {
+          const link = document.createElement('a');
+          link.download = 'rahemiyya campain.jpg';
+          link.href = URL.createObjectURL(blob);
+          link.click();
+          URL.revokeObjectURL(link.href);
+        }, 'image/png', 1.0);
+    
+      } catch (err) {
+        console.error('❌ Download error:', err);
+        alert('Failed to download image. Please try again.');
+      }
     });
-  </script>
+    </script>
+    
+    
 </body>
 </html>
-
 
