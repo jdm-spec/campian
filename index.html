@@ -143,8 +143,7 @@
     insertedName.textContent = nameInput.value;
   });
 
-  //  💎 Export 400% HD Poster
-  downloadBtn.addEventListener('click', async () => {
+ downloadBtn.addEventListener('click', async () => {
     try {
       const scale = 4; // 400% HD clarity
       const rect = posterArea.getBoundingClientRect();
@@ -197,10 +196,12 @@
       alert('Unable to generate HD image. Please try again.');
     }
   });
+  });
 </script>
 
 </body>
 </html>
+
 
 
 
