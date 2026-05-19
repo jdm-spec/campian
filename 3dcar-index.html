@@ -1,0 +1,926 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --neon-blue:#00d4ff;--neon-red:#ff003c;--neon-purple:#8b00ff;
+    --dark:#050508;--graphite:#0d0d14;--glass:rgba(255,255,255,0.04);
+    --glass-border:rgba(0,212,255,0.15);
+  }
+  body{background:#050508;color:#fff;font-family:'Rajdhani',sans-serif;overflow-x:hidden;cursor:default}
+  canvas#bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+
+  /* NAV */
+  nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 40px;display:flex;align-items:center;justify-content:space-between;background:rgba(5,5,8,0.7);backdrop-filter:blur(20px);border-bottom:1px solid var(--glass-border)}
+  .logo{font-family:'Orbitron',monospace;font-size:20px;font-weight:900;background:linear-gradient(90deg,var(--neon-blue),var(--neon-purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:3px}
+  .nav-links{display:flex;gap:24px;list-style:none}
+  .nav-links a{color:rgba(255,255,255,0.6);text-decoration:none;font-size:13px;letter-spacing:2px;text-transform:uppercase;transition:color 0.3s;font-weight:600}
+  .nav-links a:hover,.nav-links a.active{color:var(--neon-blue)}
+  .nav-cta{background:linear-gradient(135deg,var(--neon-blue),var(--neon-purple));border:none;padding:10px 24px;color:#fff;font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;cursor:pointer;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);font-weight:700;transition:opacity 0.3s}
+  .nav-cta:hover{opacity:0.85}
+
+  /* SECTIONS */
+  .section{position:relative;z-index:10;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:100px 40px 60px}
+
+  /* HERO */
+  #hero{padding-top:80px;text-align:center;overflow:hidden}
+  .hero-badge{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--glass-border);background:var(--glass);padding:6px 20px;border-radius:2px;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--neon-blue);margin-bottom:32px}
+  .hero-badge::before{content:'';width:6px;height:6px;background:var(--neon-blue);border-radius:50%;animation:pulse 1.5s infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.7)}}
+  .hero-title{font-family:'Orbitron',monospace;font-size:clamp(36px,7vw,96px);font-weight:900;line-height:0.95;letter-spacing:-2px;margin-bottom:24px}
+  .hero-title .line1{display:block;color:#fff}
+  .hero-title .line2{display:block;background:linear-gradient(90deg,var(--neon-blue),var(--neon-purple),var(--neon-red));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .hero-sub{font-size:17px;color:rgba(255,255,255,0.5);max-width:560px;margin:0 auto 48px;line-height:1.7;font-weight:300}
+  .hero-btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:60px}
+  .btn-primary{background:linear-gradient(135deg,var(--neon-blue),var(--neon-purple));border:none;padding:14px 36px;color:#fff;font-family:'Orbitron',monospace;font-size:12px;letter-spacing:2px;cursor:pointer;font-weight:700;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);transition:transform 0.2s,opacity 0.2s}
+  .btn-primary:hover{transform:scale(1.03);opacity:0.9}
+  .btn-secondary{background:transparent;border:1px solid var(--glass-border);padding:14px 36px;color:rgba(255,255,255,0.8);font-family:'Orbitron',monospace;font-size:12px;letter-spacing:2px;cursor:pointer;font-weight:700;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);transition:border-color 0.3s,color 0.3s}
+  .btn-secondary:hover{border-color:var(--neon-blue);color:var(--neon-blue)}
+
+  /* CAR VIEWER */
+  .car-stage{width:100%;max-width:900px;position:relative;margin:0 auto}
+  .car-canvas{width:100%;height:420px;position:relative;border:1px solid var(--glass-border);background:linear-gradient(180deg,rgba(0,212,255,0.03) 0%,transparent 100%)}
+  .car-canvas canvas{width:100%;height:100%}
+  .hud-overlay{position:absolute;inset:0;pointer-events:none}
+  .hud-corner{position:absolute;width:30px;height:30px;border-color:var(--neon-blue);border-style:solid;border-width:0}
+  .hud-corner.tl{top:12px;left:12px;border-top-width:2px;border-left-width:2px}
+  .hud-corner.tr{top:12px;right:12px;border-top-width:2px;border-right-width:2px}
+  .hud-corner.bl{bottom:12px;left:12px;border-bottom-width:2px;border-left-width:2px}
+  .hud-corner.br{bottom:12px;right:12px;border-bottom-width:2px;border-right-width:2px}
+  .hud-label{position:absolute;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;color:var(--neon-blue);opacity:0.7}
+  .hud-label.top-left{top:20px;left:52px}
+  .hud-label.top-right{top:20px;right:52px}
+  .hud-label.bot-left{bottom:20px;left:52px}
+  .hud-label.bot-right{bottom:20px;right:52px}
+  .car-controls{display:flex;justify-content:center;gap:12px;margin-top:16px;flex-wrap:wrap}
+  .ctrl-btn{background:rgba(0,212,255,0.07);border:1px solid rgba(0,212,255,0.2);color:rgba(255,255,255,0.7);padding:8px 20px;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;transition:all 0.3s}
+  .ctrl-btn:hover,.ctrl-btn.active{background:rgba(0,212,255,0.18);border-color:var(--neon-blue);color:var(--neon-blue)}
+
+  /* STATS STRIP */
+  .stats-strip{width:100%;max-width:900px;display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--glass-border);border:1px solid var(--glass-border);margin-top:16px}
+  .stat-cell{background:#050508;padding:18px 24px;text-align:center}
+  .stat-val{font-family:'Orbitron',monospace;font-size:28px;font-weight:900;color:var(--neon-blue)}
+  .stat-unit{font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+
+  /* BRANDS */
+  #brands .section-title{font-family:'Orbitron',monospace;font-size:36px;font-weight:900;text-align:center;margin-bottom:8px}
+  .section-sub{text-align:center;color:rgba(255,255,255,0.4);font-size:15px;letter-spacing:2px;margin-bottom:48px;text-transform:uppercase}
+  .brands-scroll{width:100%;overflow:hidden;position:relative;margin-bottom:32px}
+  .brands-track{display:flex;gap:20px;animation:scroll-brands 30s linear infinite;width:max-content}
+  .brands-track2{display:flex;gap:20px;animation:scroll-brands2 25s linear infinite;width:max-content;margin-top:16px}
+  @keyframes scroll-brands{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+  @keyframes scroll-brands2{0%{transform:translateX(-50%)}100%{transform:translateX(0)}}
+  .brand-chip{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);padding:12px 28px;font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;color:rgba(255,255,255,0.5);white-space:nowrap;transition:all 0.3s;cursor:pointer;flex-shrink:0}
+  .brand-chip:hover{background:rgba(0,212,255,0.1);border-color:var(--neon-blue);color:var(--neon-blue)}
+
+  /* BUILDER */
+  #builder{background:linear-gradient(180deg,#050508,#07071a,#050508)}
+  .builder-wrap{width:100%;max-width:1100px;display:grid;grid-template-columns:280px 1fr;gap:24px;align-items:start}
+  .panel{background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);padding:0;overflow:hidden}
+  .panel-header{background:linear-gradient(90deg,rgba(0,212,255,0.1),transparent);padding:16px 20px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:10px}
+  .panel-header-dot{width:8px;height:8px;background:var(--neon-blue);border-radius:50%}
+  .panel-title{font-family:'Orbitron',monospace;font-size:12px;letter-spacing:2px;color:var(--neon-blue)}
+  .mod-categories{display:flex;flex-direction:column}
+  .mod-cat{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:all 0.3s;font-size:13px;letter-spacing:1px;color:rgba(255,255,255,0.55);font-weight:600}
+  .mod-cat:hover,.mod-cat.active{background:rgba(0,212,255,0.07);color:#fff}
+  .mod-cat.active{border-left:2px solid var(--neon-blue)}
+  .mod-cat-badge{background:rgba(0,212,255,0.15);color:var(--neon-blue);font-size:10px;padding:2px 8px;font-family:'Orbitron',monospace}
+  .builder-main{display:flex;flex-direction:column;gap:16px}
+  .mod-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .mod-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);padding:16px;cursor:pointer;transition:all 0.3s;position:relative;overflow:hidden}
+  .mod-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--neon-blue),var(--neon-purple));opacity:0;transition:opacity 0.3s}
+  .mod-card:hover::before{opacity:0.07}
+  .mod-card:hover{border-color:rgba(0,212,255,0.4)}
+  .mod-card.selected{border-color:var(--neon-blue)}
+  .mod-card.selected::before{opacity:0.1}
+  .mod-icon{font-size:28px;margin-bottom:10px}
+  .mod-name{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:1px;color:rgba(255,255,255,0.85);margin-bottom:4px}
+  .mod-price{font-size:12px;color:var(--neon-blue);font-weight:600}
+  .mod-sel-badge{position:absolute;top:8px;right:8px;background:var(--neon-blue);color:#000;font-size:9px;padding:2px 6px;font-family:'Orbitron',monospace;font-weight:700;display:none}
+  .mod-card.selected .mod-sel-badge{display:block}
+
+  /* COLORS */
+  .color-picker-wrap{background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);padding:20px}
+  .color-label{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;color:rgba(255,255,255,0.5);margin-bottom:16px}
+  .color-swatches{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+  .swatch{width:36px;height:36px;border-radius:2px;cursor:pointer;border:2px solid transparent;transition:all 0.3s;position:relative}
+  .swatch:hover{transform:scale(1.15)}
+  .swatch.active{border-color:#fff;transform:scale(1.1)}
+  .swatch::after{content:attr(data-name);position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);font-size:9px;color:rgba(255,255,255,0.5);white-space:nowrap;opacity:0;transition:opacity 0.2s;letter-spacing:1px}
+  .swatch:hover::after{opacity:1}
+  .finish-btns{display:flex;gap:8px;flex-wrap:wrap}
+  .finish-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);padding:7px 16px;font-size:11px;letter-spacing:1px;cursor:pointer;font-family:'Orbitron',monospace;transition:all 0.3s}
+  .finish-btn:hover,.finish-btn.active{background:rgba(0,212,255,0.15);border-color:var(--neon-blue);color:var(--neon-blue)}
+
+  /* PERF SLIDERS */
+  .perf-panel{background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);padding:20px}
+  .perf-row{margin-bottom:18px}
+  .perf-header{display:flex;justify-content:space-between;margin-bottom:8px}
+  .perf-name{font-size:12px;letter-spacing:2px;color:rgba(255,255,255,0.5);text-transform:uppercase;font-weight:600}
+  .perf-val{font-family:'Orbitron',monospace;font-size:13px;color:var(--neon-blue);font-weight:700}
+  .perf-bar-bg{height:4px;background:rgba(255,255,255,0.08);position:relative;border-radius:0}
+  .perf-bar{height:4px;background:linear-gradient(90deg,var(--neon-blue),var(--neon-purple));transition:width 0.6s cubic-bezier(0.23,1,0.32,1);border-radius:0;position:relative}
+  .perf-bar::after{content:'';position:absolute;right:0;top:50%;transform:translateY(-50%);width:8px;height:8px;background:var(--neon-blue);border-radius:50%;box-shadow:0 0 10px var(--neon-blue)}
+
+  /* CATALOG */
+  #catalog{background:linear-gradient(180deg,#050508,#070714)}
+  .catalog-tabs{display:flex;gap:0;border:1px solid var(--glass-border);margin-bottom:32px;flex-wrap:wrap}
+  .tab{padding:12px 20px;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;color:rgba(255,255,255,0.4);transition:all 0.3s;border-right:1px solid var(--glass-border)}
+  .tab:last-child{border-right:none}
+  .tab:hover,.tab.active{background:rgba(0,212,255,0.1);color:var(--neon-blue)}
+  .cars-grid{width:100%;max-width:1100px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .car-card{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);overflow:hidden;cursor:pointer;transition:all 0.4s;position:relative}
+  .car-card::before{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--neon-blue),var(--neon-purple));transform:scaleX(0);transition:transform 0.4s;transform-origin:left}
+  .car-card:hover{border-color:rgba(0,212,255,0.3);transform:translateY(-4px)}
+  .car-card:hover::before{transform:scaleX(1)}
+  .car-img{height:160px;background:linear-gradient(135deg,#0d0d1a,#141425);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+  .car-img canvas{width:100%;height:100%}
+  .car-cat-badge{position:absolute;top:12px;right:12px;background:rgba(0,0,0,0.7);border:1px solid var(--glass-border);color:var(--neon-blue);font-family:'Orbitron',monospace;font-size:9px;padding:4px 10px;letter-spacing:1px}
+  .car-info{padding:16px}
+  .car-brand{font-size:11px;color:rgba(255,255,255,0.35);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;font-weight:600}
+  .car-model{font-family:'Orbitron',monospace;font-size:15px;font-weight:700;color:#fff;margin-bottom:10px}
+  .car-specs{display:flex;gap:16px;margin-bottom:12px}
+  .spec-item{font-size:11px;color:rgba(255,255,255,0.4)}
+  .spec-val{font-family:'Orbitron',monospace;font-size:14px;color:#fff;font-weight:700;display:block}
+  .car-price{font-family:'Orbitron',monospace;font-size:16px;color:var(--neon-blue);font-weight:900}
+  .car-btn{background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);color:var(--neon-blue);padding:8px 16px;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:1px;cursor:pointer;transition:all 0.3s;width:100%;margin-top:12px;font-weight:700}
+  .car-btn:hover{background:rgba(0,212,255,0.2)}
+
+  /* COMMUNITY */
+  #community{background:linear-gradient(180deg,#070714,#050508)}
+  .community-grid{width:100%;max-width:1100px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .build-card{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);overflow:hidden;cursor:pointer;transition:all 0.3s;position:relative}
+  .build-card:hover{border-color:rgba(139,0,255,0.4);transform:translateY(-4px)}
+  .build-thumb{height:180px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+  .build-thumb-canvas{width:100%;height:100%}
+  .build-user{position:absolute;bottom:12px;left:12px;display:flex;align-items:center;gap:8px}
+  .avatar{width:28px;height:28px;border-radius:50%;border:1px solid var(--glass-border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'Orbitron',monospace}
+  .build-username{font-size:12px;color:rgba(255,255,255,0.7);font-weight:600}
+  .build-likes{position:absolute;top:12px;right:12px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,0,60,0.3);padding:4px 10px;font-size:11px;color:#ff6b8a;font-family:'Orbitron',monospace}
+  .build-info{padding:14px 16px}
+  .build-name{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}
+  .build-spec{font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:1px}
+  .build-tags{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+  .tag{background:rgba(139,0,255,0.1);border:1px solid rgba(139,0,255,0.3);color:#b060ff;font-size:9px;padding:3px 10px;letter-spacing:1px;font-family:'Orbitron',monospace}
+
+  /* AI */
+  #ai-center{background:linear-gradient(180deg,#050508,#08071a)}
+  .ai-wrap{width:100%;max-width:800px}
+  .ai-panel{background:rgba(139,0,255,0.05);border:1px solid rgba(139,0,255,0.2);padding:28px;margin-bottom:20px}
+  .ai-icon{font-size:36px;margin-bottom:16px}
+  .ai-title{font-family:'Orbitron',monospace;font-size:20px;font-weight:900;margin-bottom:8px}
+  .ai-desc{font-size:15px;color:rgba(255,255,255,0.5);line-height:1.7;margin-bottom:24px}
+  .ai-input-wrap{display:flex;gap:0;margin-bottom:16px}
+  .ai-input{flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(139,0,255,0.3);border-right:none;color:#fff;padding:14px 20px;font-family:'Rajdhani',sans-serif;font-size:15px;outline:none}
+  .ai-input::placeholder{color:rgba(255,255,255,0.3)}
+  .ai-submit{background:linear-gradient(135deg,var(--neon-purple),var(--neon-blue));border:none;padding:14px 28px;color:#fff;font-family:'Orbitron',monospace;font-size:11px;letter-spacing:1px;cursor:pointer;font-weight:700;transition:opacity 0.2s}
+  .ai-submit:hover{opacity:0.85}
+  .ai-response{background:rgba(0,0,0,0.4);border-left:2px solid var(--neon-purple);padding:16px 20px;font-size:14px;color:rgba(255,255,255,0.75);line-height:1.7;min-height:60px;font-style:italic;display:none}
+  .ai-response.visible{display:block}
+  .ai-chips{display:flex;gap:8px;flex-wrap:wrap}
+  .ai-chip{background:rgba(139,0,255,0.08);border:1px solid rgba(139,0,255,0.25);color:#b060ff;padding:8px 16px;font-size:12px;cursor:pointer;letter-spacing:1px;transition:all 0.3s;font-family:'Orbitron',monospace;font-weight:400}
+  .ai-chip:hover{background:rgba(139,0,255,0.2);border-color:var(--neon-purple)}
+
+  /* FOOTER */
+  footer{position:relative;z-index:10;background:#030305;border-top:1px solid var(--glass-border);padding:48px 40px 32px}
+  .footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;max-width:1100px;margin:0 auto 40px}
+  .footer-brand .logo{font-size:18px;margin-bottom:12px;display:block}
+  .footer-desc{font-size:14px;color:rgba(255,255,255,0.35);line-height:1.7}
+  .footer-col-title{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:2px;color:rgba(255,255,255,0.5);margin-bottom:16px}
+  .footer-links{list-style:none;display:flex;flex-direction:column;gap:10px}
+  .footer-links a{font-size:14px;color:rgba(255,255,255,0.35);text-decoration:none;transition:color 0.3s}
+  .footer-links a:hover{color:var(--neon-blue)}
+  .footer-bottom{text-align:center;color:rgba(255,255,255,0.2);font-size:12px;border-top:1px solid rgba(255,255,255,0.05);padding-top:24px;max-width:1100px;margin:0 auto;letter-spacing:1px}
+
+  /* SCROLL INDICATOR */
+  .scroll-hint{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;opacity:0.4}
+  .scroll-hint-line{width:1px;height:40px;background:linear-gradient(180deg,var(--neon-blue),transparent);animation:line-pulse 2s infinite}
+  @keyframes line-pulse{0%{opacity:0;transform:scaleY(0);transform-origin:top}50%{opacity:1}100%{opacity:0;transform:scaleY(1);transform-origin:top}}
+  .scroll-hint-text{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;color:var(--neon-blue)}
+
+  /* SECTION HEADER */
+  .sec-header{text-align:center;margin-bottom:48px}
+  .sec-tag{display:inline-block;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);color:var(--neon-blue);font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;padding:6px 20px;margin-bottom:20px}
+  .sec-title{font-family:'Orbitron',monospace;font-size:clamp(28px,4vw,48px);font-weight:900;line-height:1.1}
+  .sec-title span{background:linear-gradient(90deg,var(--neon-blue),var(--neon-purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+
+  .glow-line{width:200px;height:1px;background:linear-gradient(90deg,transparent,var(--neon-blue),transparent);margin:20px auto}
+
+  /* PROGRESS BAR SECTION */
+  .progress-section{width:100%;max-width:900px;background:rgba(0,0,0,0.5);border:1px solid var(--glass-border);padding:24px;margin-top:20px}
+  .prog-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+  .prog-title{font-family:'Orbitron',monospace;font-size:14px;color:#fff}
+  .prog-total{font-family:'Orbitron',monospace;font-size:22px;color:var(--neon-blue);font-weight:900}
+  .prog-items{display:flex;flex-direction:column;gap:10px}
+  .prog-item{display:flex;align-items:center;gap:12px}
+  .prog-item-name{font-size:12px;color:rgba(255,255,255,0.5);width:120px;letter-spacing:1px;font-weight:600}
+  .prog-item-bar{flex:1;height:3px;background:rgba(255,255,255,0.06)}
+  .prog-item-fill{height:3px;background:linear-gradient(90deg,var(--neon-blue),var(--neon-purple));transition:width 0.8s ease}
+  .prog-item-val{font-family:'Orbitron',monospace;font-size:11px;color:var(--neon-blue);width:60px;text-align:right}
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">DreamGarage 3D — Futuristic car customization platform with 3D builder, catalog, community, and AI tuning</h2>
+
+<canvas id="bg"></canvas>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">DREAMGARAGE 3D</div>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="#" class="active" onclick="scrollTo('hero')">Home</a></li>
+    <li><a href="#" onclick="scrollTo('builder')">Builder</a></li>
+    <li><a href="#" onclick="scrollTo('catalog')">Catalog</a></li>
+    <li><a href="#" onclick="scrollTo('community')">Community</a></li>
+    <li><a href="#" onclick="scrollTo('ai-center')">AI Lab</a></li>
+  </ul>
+  <button class="nav-cta">JOIN PREMIUM</button>
+</nav>
+
+<!-- HERO -->
+<section class="section" id="hero">
+  <div class="hero-badge"><span></span>NEXT-GEN AUTOMOTIVE EXPERIENCE</div>
+  <h1 class="hero-title">
+    <span class="line1">BUILD YOUR</span>
+    <span class="line2">DREAM MACHINE</span>
+  </h1>
+  <p class="hero-sub">The world's most advanced 3D car customization platform. Design, tune, and showcase your ultimate build in a cinematic virtual garage.</p>
+  <div class="hero-btns">
+    <button class="btn-primary" onclick="smoothScrollTo('builder')">ENTER GARAGE</button>
+    <button class="btn-secondary" onclick="smoothScrollTo('catalog')">BROWSE CARS</button>
+  </div>
+
+  <div class="car-stage">
+    <div class="car-canvas" id="heroCarStage">
+      <canvas id="heroCanvas"></canvas>
+      <div class="hud-overlay">
+        <div class="hud-corner tl"></div>
+        <div class="hud-corner tr"></div>
+        <div class="hud-corner bl"></div>
+        <div class="hud-corner br"></div>
+        <span class="hud-label top-left">MODEL: APEX-GT</span>
+        <span class="hud-label top-right">RPM: 8,500</span>
+        <span class="hud-label bot-left">ENGINE: 4.0L TWIN-TURBO V8</span>
+        <span class="hud-label bot-right">HP: 1,200+</span>
+      </div>
+    </div>
+    <div class="car-controls">
+      <button class="ctrl-btn active" onclick="setCarView('side')">SIDE VIEW</button>
+      <button class="ctrl-btn" onclick="setCarView('front')">FRONT</button>
+      <button class="ctrl-btn" onclick="setCarView('rear')">REAR</button>
+      <button class="ctrl-btn" onclick="setCarView('top')">TOP VIEW</button>
+      <button class="ctrl-btn" onclick="toggleDayNight()">DAY/NIGHT</button>
+      <button class="ctrl-btn" onclick="toggleEngineAnim()">ENGINE SFX ▶</button>
+    </div>
+  </div>
+
+  <div class="stats-strip">
+    <div class="stat-cell"><div class="stat-val" id="statHP">0</div><div class="stat-unit">Horsepower</div></div>
+    <div class="stat-cell"><div class="stat-val" id="statTQ">0</div><div class="stat-unit">lb-ft Torque</div></div>
+    <div class="stat-cell"><div class="stat-val" id="stat60">0.0</div><div class="stat-unit">0-60 mph</div></div>
+    <div class="stat-cell"><div class="stat-val" id="statVmax">0</div><div class="stat-unit">Top Speed</div></div>
+  </div>
+
+  <div class="scroll-hint">
+    <div class="scroll-hint-text">SCROLL</div>
+    <div class="scroll-hint-line"></div>
+  </div>
+</section>
+
+<!-- BRANDS -->
+<section class="section" id="brands" style="padding-top:60px;padding-bottom:60px;min-height:auto">
+  <div class="sec-header">
+    <div class="sec-tag">SUPPORTED BRANDS</div>
+    <h2 class="sec-title">50+ <span>Iconic Manufacturers</span></h2>
+  </div>
+  <div class="brands-scroll">
+    <div class="brands-track" id="brandTrack1">
+      <!-- Duplicated for infinite loop -->
+    </div>
+    <div class="brands-track2" id="brandTrack2"></div>
+  </div>
+</section>
+
+<!-- BUILDER -->
+<section class="section" id="builder">
+  <div class="sec-header">
+    <div class="sec-tag">3D CAR BUILDER</div>
+    <h2 class="sec-title">CUSTOMIZE <span>EVERY DETAIL</span></h2>
+    <div class="glow-line"></div>
+  </div>
+  <div class="builder-wrap">
+    <div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-header-dot"></div><div class="panel-title">MODIFICATIONS</div></div>
+        <div class="mod-categories" id="modCats"></div>
+      </div>
+    </div>
+    <div class="builder-main">
+      <div class="color-picker-wrap">
+        <div class="color-label">PAINT FINISH</div>
+        <div class="color-swatches" id="colorSwatches"></div>
+        <div class="finish-btns" id="finishBtns"></div>
+      </div>
+
+      <div class="perf-panel">
+        <div class="panel-header" style="padding:0 0 16px;background:none;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:20px">
+          <div class="panel-header-dot"></div>
+          <div class="panel-title">PERFORMANCE METRICS</div>
+        </div>
+        <div id="perfBars"></div>
+      </div>
+
+      <div class="mod-grid" id="modGrid"></div>
+
+      <div class="progress-section">
+        <div class="prog-header">
+          <div class="prog-title">BUILD SUMMARY</div>
+          <div class="prog-total" id="buildTotal">$0</div>
+        </div>
+        <div class="prog-items" id="progItems"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CATALOG -->
+<section class="section" id="catalog">
+  <div class="sec-header">
+    <div class="sec-tag">CAR CATALOG</div>
+    <h2 class="sec-title">FIND YOUR <span>PERFECT BUILD</span></h2>
+    <div class="glow-line"></div>
+  </div>
+  <div class="catalog-tabs" id="catalogTabs"></div>
+  <div class="cars-grid" id="carsGrid"></div>
+</section>
+
+<!-- COMMUNITY -->
+<section class="section" id="community">
+  <div class="sec-header">
+    <div class="sec-tag">COMMUNITY BUILDS</div>
+    <h2 class="sec-title">TOP <span>CREATOR BUILDS</span></h2>
+    <div class="glow-line"></div>
+  </div>
+  <div class="community-grid" id="communityGrid"></div>
+</section>
+
+<!-- AI CENTER -->
+<section class="section" id="ai-center">
+  <div class="sec-header">
+    <div class="sec-tag">AI TUNING CENTER</div>
+    <h2 class="sec-title">AI-POWERED <span>DREAM BUILDER</span></h2>
+    <div class="glow-line"></div>
+  </div>
+  <div class="ai-wrap">
+    <div class="ai-panel">
+      <div class="ai-icon">🤖</div>
+      <div class="ai-title">AI BUILD GENERATOR</div>
+      <div class="ai-desc">Describe your dream car and our AI will generate a complete build specification — from powertrain to paint, aerodynamics to audio.</div>
+      <div class="ai-input-wrap">
+        <input class="ai-input" id="aiInput" placeholder="e.g. 1000hp track-focused Lamborghini Huracán with widebody..." />
+        <button class="ai-submit" onclick="generateAIBuild()">GENERATE</button>
+      </div>
+      <div class="ai-response" id="aiResponse"></div>
+    </div>
+    <div class="ai-panel" style="border-color:rgba(0,212,255,0.2);background:rgba(0,212,255,0.04)">
+      <div class="ai-title" style="font-size:15px">QUICK PROMPTS</div>
+      <div class="ai-chips" id="aiChips"></div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <span class="logo">DREAMGARAGE 3D</span>
+      <p class="footer-desc">The world's most advanced virtual automotive customization platform. Build, tune, and share your dream machine.</p>
+    </div>
+    <div>
+      <div class="footer-col-title">PLATFORM</div>
+      <ul class="footer-links">
+        <li><a href="#">Car Builder</a></li>
+        <li><a href="#">Performance Lab</a></li>
+        <li><a href="#">Virtual Showroom</a></li>
+        <li><a href="#">AI Tuning Center</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">COMMUNITY</div>
+      <ul class="footer-links">
+        <li><a href="#">Top Builds</a></li>
+        <li><a href="#">Car Meets</a></li>
+        <li><a href="#">Leaderboard</a></li>
+        <li><a href="#">Creator Profiles</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">MEMBERSHIP</div>
+      <ul class="footer-links">
+        <li><a href="#">Premium Tier</a></li>
+        <li><a href="#">Marketplace</a></li>
+        <li><a href="#">Support</a></li>
+        <li><a href="#">About</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2025 DREAMGARAGE 3D — ALL RIGHTS RESERVED — NEXT-GEN AUTOMOTIVE METAVERSE</div>
+</footer>
+
+<script>
+const brands1=['Ferrari','Lamborghini','Porsche','BMW','Mercedes-Benz','Audi','McLaren','Bugatti','Rolls-Royce','Nissan','Toyota','Honda','Ford'];
+const brands2=['Chevrolet','Dodge','Tesla','Koenigsegg','Pagani','Mazda','Subaru','Lexus','Aston Martin','Bentley','Jaguar','Volvo','Hyundai','Kia'];
+
+function populateBrands(){
+  const t1=document.getElementById('brandTrack1');
+  const t2=document.getElementById('brandTrack2');
+  const all1=[...brands1,...brands1];
+  const all2=[...brands2,...brands2];
+  t1.innerHTML=all1.map(b=>`<div class="brand-chip">${b}</div>`).join('');
+  t2.innerHTML=all2.map(b=>`<div class="brand-chip">${b}</div>`).join('');
+}
+populateBrands();
+
+const modCats=[
+  {name:'EXTERIOR',count:12},{name:'POWERTRAIN',count:8},{name:'SUSPENSION',count:6},
+  {name:'WHEELS',count:10},{name:'INTERIOR',count:9},{name:'LIGHTING',count:7},
+  {name:'AERO',count:8},{name:'AUDIO',count:5}
+];
+let activeCat=0;
+function buildModCats(){
+  document.getElementById('modCats').innerHTML=modCats.map((c,i)=>`
+    <div class="mod-cat ${i===0?'active':''}" onclick="selectCat(${i})">
+      <span>${c.name}</span><span class="mod-cat-badge">${c.count}</span>
+    </div>`).join('');
+}
+function selectCat(i){
+  activeCat=i;
+  document.querySelectorAll('.mod-cat').forEach((el,j)=>el.classList.toggle('active',j===i));
+  buildModGrid(i);
+}
+buildModCats();
+
+const modItems=[
+  [{icon:'🔲',name:'WIDEBODY KIT',price:'$3,200'},{icon:'💨',name:'CARBON SPLITTER',price:'$1,800'},
+   {icon:'🔧',name:'HOOD VENTS',price:'$950'},{icon:'✨',name:'CHROME WRAP',price:'$4,500'}],
+  [{icon:'⚡',name:'TWIN-TURBO',price:'$8,500'},{icon:'🔥',name:'SUPERCHARGER',price:'$6,200'},
+   {icon:'💉',name:'NOS SYSTEM',price:'$2,100'},{icon:'🧠',name:'ECU TUNE',price:'$1,400'}],
+  [{icon:'🌀',name:'COILOVERS',price:'$2,800'},{icon:'💨',name:'AIR SUSPENSION',price:'$4,200'},
+   {icon:'🔴',name:'BRAKE KIT',price:'$3,500'},{icon:'⚙️',name:'SWAY BARS',price:'$900'}],
+  [{icon:'⭕',name:'FORGED RIMS',price:'$5,200'},{icon:'🔵',name:'CARBON WHEELS',price:'$9,800'},
+   {icon:'⚫',name:'SLICK TIRES',price:'$1,800'},{icon:'🟠',name:'BRAKE CALIPERS',price:'$2,400'}],
+  [{icon:'🪑',name:'RACING SEATS',price:'$2,900'},{icon:'🎮',name:'SPORT WHEEL',price:'$1,200'},
+   {icon:'🏁',name:'ROLL CAGE',price:'$4,800'},{icon:'🔊',name:'SOUND SYSTEM',price:'$3,100'}],
+  [{icon:'💡',name:'LED MATRIX',price:'$2,200'},{icon:'🌈',name:'UNDERGLOW',price:'$800'},
+   {icon:'✨',name:'INTERIOR AMBIENCE',price:'$1,400'},{icon:'🔦',name:'LASER HEADLIGHTS',price:'$3,600'}],
+  [{icon:'🛞',name:'GT WING',price:'$3,800'},{icon:'🌬️',name:'DIFFUSER',price:'$2,100'},
+   {icon:'🔱',name:'SPLITTER',price:'$1,500'},{icon:'🚀',name:'CANARDS',price:'$900'}],
+  [{icon:'🎵',name:'SUBWOOFER',price:'$1,800'},{icon:'📻',name:'AMP SYSTEM',price:'$2,400'},
+   {icon:'🔈',name:'SPEAKER SET',price:'$1,100'},{icon:'📱',name:'HUD DISPLAY',price:'$2,800'}]
+];
+let selectedMods=new Set();
+let buildTotal=0;
+function buildModGrid(catIdx){
+  const items=modItems[catIdx]||modItems[0];
+  document.getElementById('modGrid').innerHTML=items.map((m,i)=>{
+    const key=`${catIdx}-${i}`;
+    const sel=selectedMods.has(key);
+    return`<div class="mod-card ${sel?'selected':''}" onclick="toggleMod('${key}','${m.price}',this)">
+      <div class="mod-sel-badge">✓ SELECTED</div>
+      <div class="mod-icon">${m.icon}</div>
+      <div class="mod-name">${m.name}</div>
+      <div class="mod-price">${m.price}</div>
+    </div>`;
+  }).join('');
+}
+buildModGrid(0);
+
+function toggleMod(key,priceStr,el){
+  const price=parseInt(priceStr.replace(/[$,]/g,''));
+  if(selectedMods.has(key)){selectedMods.delete(key);buildTotal-=price;el.classList.remove('selected');}
+  else{selectedMods.add(key);buildTotal+=price;el.classList.add('selected');}
+  document.querySelector('.mod-card.selected .mod-sel-badge')&&null;
+  el.querySelector('.mod-sel-badge').style.display=selectedMods.has(key)?'block':'none';
+  document.getElementById('buildTotal').textContent='$'+buildTotal.toLocaleString();
+  updateProgItems();
+}
+
+const perfMetrics=[
+  {name:'HORSEPOWER',val:78,unit:'HP'},
+  {name:'TORQUE',val:65,unit:'LB-FT'},
+  {name:'HANDLING',val:82,unit:'SCORE'},
+  {name:'ACCELERATION',val:71,unit:'SCORE'},
+  {name:'TOP SPEED',val:88,unit:'SCORE'}
+];
+function buildPerfBars(){
+  document.getElementById('perfBars').innerHTML=perfMetrics.map(m=>`
+    <div class="perf-row">
+      <div class="perf-header">
+        <span class="perf-name">${m.name}</span>
+        <span class="perf-val">${m.val} ${m.unit}</span>
+      </div>
+      <div class="perf-bar-bg"><div class="perf-bar" style="width:${m.val}%"></div></div>
+    </div>`).join('');
+}
+buildPerfBars();
+
+function updateProgItems(){
+  const cats=['Exterior','Powertrain','Suspension','Wheels'];
+  const vals=[selectedMods.size>0?Math.floor(buildTotal*0.4):0,
+    selectedMods.size>0?Math.floor(buildTotal*0.3):0,
+    selectedMods.size>0?Math.floor(buildTotal*0.15):0,
+    selectedMods.size>0?Math.floor(buildTotal*0.15):0];
+  const max=Math.max(...vals,1);
+  document.getElementById('progItems').innerHTML=cats.map((c,i)=>`
+    <div class="prog-item">
+      <div class="prog-item-name">${c}</div>
+      <div class="prog-item-bar"><div class="prog-item-fill" style="width:${(vals[i]/max)*100}%"></div></div>
+      <div class="prog-item-val">$${vals[i].toLocaleString()}</div>
+    </div>`).join('');
+}
+updateProgItems();
+
+const colors=[
+  {hex:'#0a0a0a',name:'ONYX'},{hex:'#2a2a2a',name:'GRAPHITE'},{hex:'#c0c0c0',name:'SILVER'},
+  {hex:'#1a1a40',name:'MIDNIGHT'},{hex:'#8b0000',name:'CRIMSON'},{hex:'#003366',name:'NAVY'},
+  {hex:'#004400',name:'BRITISH GRN'},{hex:'#ff6600',name:'ORANGE GTR'},
+  {hex:'#ff0000',name:'ROSSO'},{hex:'#d4af37',name:'GOLD'}
+];
+const finishes=['GLOSS','MATTE','SATIN','CHROME','METALLIC','FORGED CARBON'];
+function buildColors(){
+  const sw=document.getElementById('colorSwatches');
+  sw.innerHTML=colors.map((c,i)=>`<div class="swatch ${i===0?'active':''}" style="background:${c.hex}" data-name="${c.name}" onclick="selectColor(this)"></div>`).join('');
+  document.getElementById('finishBtns').innerHTML=finishes.map((f,i)=>`<button class="finish-btn ${i===0?'active':''}" onclick="selectFinish(this)">${f}</button>`).join('');
+}
+function selectColor(el){document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));el.classList.add('active');}
+function selectFinish(el){document.querySelectorAll('.finish-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');}
+buildColors();
+
+const catalogTabList=['All','Supercars','Hypercars','JDM','Muscle','Luxury','SUV','Electric','Race','Drift'];
+const carData=[
+  {brand:'Ferrari',model:'SF90 Stradale',cat:'Supercars',hp:'1000',speed:'211',w60:'2.5',price:'$625,000',color:'#c00'},
+  {brand:'Lamborghini',model:'Huracán STO',cat:'Supercars',hp:'630',speed:'202',w60:'3.0',price:'$328,000',color:'#ff6a00'},
+  {brand:'McLaren',model:'Senna GTR',cat:'Hypercars',hp:'825',speed:'218',w60:'2.8',price:'$1.1M',color:'#f60'},
+  {brand:'Nissan',model:'GT-R NISMO',cat:'JDM',hp:'600',speed:'196',w60:'2.9',price:'$212,000',color:'#eee'},
+  {brand:'Toyota',model:'GR Supra A90',cat:'JDM',hp:'382',speed:'155',w60:'4.1',price:'$57,000',color:'#e00'},
+  {brand:'Dodge',model:'Challenger SRT',cat:'Muscle',hp:'807',speed:'203',w60:'3.6',price:'$94,000',color:'#333'},
+  {brand:'Tesla',model:'Model S Plaid',cat:'Electric',hp:'1020',speed:'200',w60:'1.99',price:'$130,000',color:'#c0c0c0'},
+  {brand:'Bugatti',model:'Chiron Super Sport',cat:'Hypercars',hp:'1578',speed:'273',w60:'2.3',price:'$3.9M',color:'#002060'},
+  {brand:'Porsche',model:'911 GT3 RS',cat:'Supercars',hp:'525',speed:'184',w60:'3.2',price:'$240,000',color:'#ddd'},
+];
+let activeCatalogTab=0;
+function buildCatalogTabs(){
+  document.getElementById('catalogTabs').innerHTML=catalogTabList.map((t,i)=>`<div class="tab ${i===0?'active':''}" onclick="filterCars('${t}',${i},this)">${t}</div>`).join('');
+}
+function filterCars(cat,idx,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const filtered=cat==='All'?carData:carData.filter(c=>c.cat===cat);
+  renderCars(filtered.length?filtered:carData.slice(0,3));
+}
+function renderCars(list){
+  document.getElementById('carsGrid').innerHTML=list.map(c=>`
+    <div class="car-card">
+      <div class="car-img" style="background:linear-gradient(135deg,${c.color}22,#0d0d1a)">
+        <canvas width="320" height="160" style="width:100%;height:100%" data-color="${c.color}"></canvas>
+        <div class="car-cat-badge">${c.cat}</div>
+      </div>
+      <div class="car-info">
+        <div class="car-brand">${c.brand}</div>
+        <div class="car-model">${c.model}</div>
+        <div class="car-specs">
+          <div class="spec-item"><span class="spec-val">${c.hp}</span>HP</div>
+          <div class="spec-item"><span class="spec-val">${c.speed}</span>MPH</div>
+          <div class="spec-item"><span class="spec-val">${c.w60}s</span>0-60</div>
+        </div>
+        <div class="car-price">${c.price}</div>
+        <button class="car-btn" onclick="sendPrompt('Tell me more about the ${c.brand} ${c.model} and customization options')">CUSTOMIZE THIS BUILD ↗</button>
+      </div>
+    </div>`).join('');
+  setTimeout(drawCarThumbs,50);
+}
+buildCatalogTabs();
+renderCars(carData);
+
+function drawCarThumbs(){
+  document.querySelectorAll('#carsGrid canvas').forEach(canvas=>{
+    const col=canvas.dataset.color||'#00d4ff';
+    const ctx=canvas.getContext('2d');
+    if(!ctx)return;
+    drawMiniCar(ctx,canvas.width,canvas.height,col);
+  });
+}
+
+const communityBuilds=[
+  {user:'DRFT_KNG',initials:'DK',color:'#00d4ff',car:'Silvia S15 Widebody',tags:['DRIFT','JDM','WIDEBODY'],likes:'4.2k',build:'Street Samurai Build'},
+  {user:'VEL0CITY',initials:'VL',color:'#8b00ff',car:'Huracán Twin-Turbo',tags:['SUPERCAR','TRACK','1000HP'],likes:'8.9k',build:'Purple Rain Edition'},
+  {user:'APEX_X',initials:'AX',color:'#ff003c',car:'GT-R R34 Time Attack',tags:['JDM','TRACK','NISMO'],likes:'6.1k',build:'Red Devil R34'},
+  {user:'CHROME_K',initials:'CK',color:'#d4af37',car:'Lambo STO Chrome',tags:['CHROME','LUXURY','SHOW'],likes:'12.4k',build:'Gold Rush STO'},
+  {user:'NITERUN',initials:'NR',color:'#00ff88',car:'Supra Mk4 Restomod',tags:['JDM','CLASSIC','TURBO'],likes:'3.7k',build:'2JZ Reborn'},
+  {user:'PHANTOM_M',initials:'PM',color:'#ff6a00',car:'Ferrari SF90 Track',tags:['HYPERCAR','F1','1000HP'],likes:'19.3k',build:'Ghost Fire'}
+];
+function buildCommunity(){
+  document.getElementById('communityGrid').innerHTML=communityBuilds.map(b=>`
+    <div class="build-card">
+      <div class="build-thumb" style="background:linear-gradient(135deg,${b.color}18,#0d0d1a)">
+        <canvas width="340" height="180" style="width:100%;height:100%" data-color="${b.color}"></canvas>
+        <div class="build-user">
+          <div class="avatar" style="background:${b.color}22;border-color:${b.color}44;color:${b.color}">${b.initials}</div>
+          <span class="build-username">${b.user}</span>
+        </div>
+        <div class="build-likes">♥ ${b.likes}</div>
+      </div>
+      <div class="build-info">
+        <div class="build-name">${b.build}</div>
+        <div class="build-spec">${b.car}</div>
+        <div class="build-tags">${b.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+      </div>
+    </div>`).join('');
+  setTimeout(()=>{
+    document.querySelectorAll('#communityGrid canvas').forEach(canvas=>{
+      const col=canvas.dataset.color||'#00d4ff';
+      const ctx=canvas.getContext('2d');
+      if(!ctx)return;
+      drawMiniCar(ctx,canvas.width,canvas.height,col);
+    });
+  },50);
+}
+buildCommunity();
+
+const aiPrompts=[
+  '1000hp street build for daily driving',
+  'Track-spec time attack Supra',
+  'JDM drift car under $30k',
+  'Luxury supercar with maximum aero',
+  'Electric hypercar with drag setup',
+  'Classic muscle with modern power'
+];
+const aiResponses=[
+  '🔧 BUILD SPEC GENERATED\n\nPowertrain: 4.0L Twin-Turbo V8 → Stage 3 ECU → 1,020 HP @ 7,800 RPM\nSuspension: Öhlins TTX36 coilovers, -1.8° camber\nAero: Carbon widebody +60mm, GT wing 1.4m span\nWheels: 20" Forgeline Carbon (285/35 front, 315/30 rear)\nFinish: Satin Volcanic Grey + Neon accent livery\nEstimated: $187,500 build cost',
+  '🏁 TRACK SPEC GENERATED\n\nEngine: 3JZ-GTE 3.4L Stroker → 750 HP\nChassis: Full roll cage, stripped interior\nAero: GT3-spec wing, front splitter, side canards\nBrakes: AP Racing 6-pot, 380mm rotors\nSuspension: Öhlins DFV race spec\nLap time estimate: 7:42 Nurburgring',
+];
+function buildAIChips(){
+  document.getElementById('aiChips').innerHTML=aiPrompts.map((p,i)=>`<div class="ai-chip" onclick="setAIPrompt('${p}')">${p}</div>`).join('');
+}
+function setAIPrompt(p){document.getElementById('aiInput').value=p;}
+function generateAIBuild(){
+  const resp=document.getElementById('aiResponse');
+  const input=document.getElementById('aiInput').value;
+  if(!input.trim())return;
+  resp.style.display='block';
+  resp.textContent='⚡ AI analyzing build parameters...';
+  setTimeout(()=>{
+    const r=aiResponses[Math.floor(Math.random()*aiResponses.length)];
+    resp.style.whiteSpace='pre-line';
+    resp.textContent=r;
+  },1400);
+}
+buildAIChips();
+
+// Canvas background — particles & streaks
+const bgCanvas=document.getElementById('bg');
+const bgCtx=bgCanvas.getContext('2d');
+let W,H,particles=[];
+function resizeBg(){W=bgCanvas.width=window.innerWidth;H=bgCanvas.height=window.innerHeight;}
+resizeBg();window.addEventListener('resize',resizeBg);
+for(let i=0;i<120;i++)particles.push({x:Math.random()*2000,y:Math.random()*2000,vx:(Math.random()-0.5)*0.4,vy:(Math.random()-0.5)*0.2,size:Math.random()*1.5+0.3,opacity:Math.random()*0.4+0.05,hue:Math.random()<0.6?195:270});
+function animBg(){
+  bgCtx.clearRect(0,0,W,H);
+  particles.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;
+    bgCtx.beginPath();bgCtx.arc(p.x,p.y,p.size,0,Math.PI*2);
+    bgCtx.fillStyle=`hsla(${p.hue},100%,60%,${p.opacity})`;bgCtx.fill();
+  });
+  requestAnimationFrame(animBg);
+}
+animBg();
+
+// HERO 3D CAR CANVAS
+const heroCanvas=document.getElementById('heroCanvas');
+heroCanvas.width=heroCanvas.parentElement.offsetWidth||800;
+heroCanvas.height=420;
+const hCtx=heroCanvas.getContext('2d');
+let carAngle=0,carView='side',isDayMode=true,engineAnim=false,enginePhase=0;
+
+function drawCar(ctx,w,h,angle,view,dayMode){
+  ctx.clearRect(0,0,w,h);
+  const cx=w/2,cy=h/2;
+  const envGrad=ctx.createLinearGradient(0,0,0,h);
+  if(dayMode){envGrad.addColorStop(0,'#0a0a18');envGrad.addColorStop(1,'#050508');}
+  else{envGrad.addColorStop(0,'#020210');envGrad.addColorStop(1,'#010108');}
+  ctx.fillStyle=envGrad;ctx.fillRect(0,0,w,h);
+
+  // Floor reflection
+  ctx.fillStyle=dayMode?'rgba(0,212,255,0.04)':'rgba(139,0,255,0.05)';
+  ctx.fillRect(0,h*0.72,w,h*0.28);
+  for(let i=0;i<8;i++){
+    ctx.strokeStyle=`rgba(0,212,255,${0.03+i*0.008})`;ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.moveTo(0,h*0.72+i*18);ctx.lineTo(w,h*0.72+i*18);ctx.stroke();
+  }
+
+  const sc=w/900;
+  const carW=460*sc,carH=160*sc;
+  const carX=cx-carW/2,carY=cy-carH/2-20*sc;
+
+  if(view==='side'||view==='top'){drawSideCar(ctx,carX,carY,carW,carH,sc,angle);}
+  else if(view==='front'){drawFrontCar(ctx,cx,cy,sc);}
+  else if(view==='rear'){drawRearCar(ctx,cx,cy,sc);}
+
+  // Ambient neon glow
+  const g1=ctx.createRadialGradient(cx,cy+120*sc,0,cx,cy+120*sc,200*sc);
+  g1.addColorStop(0,dayMode?'rgba(0,212,255,0.08)':'rgba(139,0,255,0.1)');
+  g1.addColorStop(1,'transparent');
+  ctx.fillStyle=g1;ctx.fillRect(0,0,w,h);
+
+  // Scanlines
+  for(let i=0;i<h;i+=4){ctx.fillStyle='rgba(0,0,0,0.15)';ctx.fillRect(0,i,w,2);}
+}
+
+function drawSideCar(ctx,x,y,cw,ch,sc,angle){
+  const anim=Math.sin(angle)*3*sc;
+  // Body
+  ctx.save();ctx.translate(0,anim);
+  ctx.fillStyle='#0d0d1a';
+  ctx.beginPath();
+  ctx.moveTo(x+30*sc,y+ch);ctx.lineTo(x+80*sc,y+ch*0.55);ctx.lineTo(x+160*sc,y+ch*0.2);
+  ctx.lineTo(x+300*sc,y+ch*0.05);ctx.lineTo(x+380*sc,y+ch*0.18);
+  ctx.lineTo(x+cw-20*sc,y+ch*0.58);ctx.lineTo(x+cw,y+ch);ctx.closePath();
+  ctx.fillStyle='#0d0d1a';ctx.fill();
+  ctx.strokeStyle='rgba(0,212,255,0.6)';ctx.lineWidth=1.5*sc;ctx.stroke();
+
+  // Roof
+  ctx.beginPath();
+  ctx.moveTo(x+160*sc,y+ch*0.2);ctx.lineTo(x+190*sc,y+ch*0.02);
+  ctx.lineTo(x+340*sc,y+ch*0.02);ctx.lineTo(x+380*sc,y+ch*0.18);ctx.closePath();
+  ctx.fillStyle='#080814';ctx.fill();
+  ctx.strokeStyle='rgba(0,212,255,0.5)';ctx.lineWidth=1*sc;ctx.stroke();
+
+  // Windows
+  ctx.beginPath();ctx.moveTo(x+168*sc,y+ch*0.19);ctx.lineTo(x+195*sc,y+ch*0.06);
+  ctx.lineTo(x+255*sc,y+ch*0.06);ctx.lineTo(x+255*sc,y+ch*0.19);ctx.closePath();
+  ctx.fillStyle='rgba(0,150,255,0.15)';ctx.fill();ctx.strokeStyle='rgba(0,212,255,0.4)';ctx.lineWidth=0.8*sc;ctx.stroke();
+
+  ctx.beginPath();ctx.moveTo(x+262*sc,y+ch*0.06);ctx.lineTo(x+330*sc,y+ch*0.06);
+  ctx.lineTo(x+370*sc,y+ch*0.19);ctx.lineTo(x+262*sc,y+ch*0.19);ctx.closePath();
+  ctx.fillStyle='rgba(0,150,255,0.12)';ctx.fill();ctx.strokeStyle='rgba(0,212,255,0.3)';ctx.lineWidth=0.8*sc;ctx.stroke();
+
+  // Wheels
+  [[x+105*sc,y+ch],[x+cw-90*sc,y+ch]].forEach(([wx,wy])=>{
+    const r=55*sc;
+    ctx.beginPath();ctx.arc(wx,wy,r,0,Math.PI*2);
+    ctx.fillStyle='#111';ctx.fill();
+    ctx.strokeStyle='rgba(0,212,255,0.5)';ctx.lineWidth=2*sc;ctx.stroke();
+    ctx.beginPath();ctx.arc(wx,wy,r*0.65,0,Math.PI*2);
+    ctx.strokeStyle='rgba(0,212,255,0.8)';ctx.lineWidth=1*sc;ctx.stroke();
+    for(let s=0;s<5;s++){
+      const a=(s/5)*Math.PI*2+angle;
+      ctx.beginPath();ctx.moveTo(wx,wy);ctx.lineTo(wx+Math.cos(a)*r*0.62,wy+Math.sin(a)*r*0.62);
+      ctx.strokeStyle='rgba(0,212,255,0.5)';ctx.lineWidth=1.5*sc;ctx.stroke();
+    }
+  });
+
+  // Ground shadow
+  const gs=ctx.createRadialGradient(x+cw/2,y+ch+2*sc,0,x+cw/2,y+ch+2*sc,cw*0.4);
+  gs.addColorStop(0,'rgba(0,212,255,0.15)');gs.addColorStop(1,'transparent');
+  ctx.fillStyle=gs;ctx.fillRect(x,y+ch-5*sc,cw,40*sc);
+
+  // Headlight glow
+  ctx.shadowColor='#00d4ff';ctx.shadowBlur=20*sc;
+  ctx.beginPath();ctx.arc(x+35*sc,y+ch*0.62,8*sc,0,Math.PI*2);
+  ctx.fillStyle='rgba(0,212,255,0.9)';ctx.fill();
+  ctx.beginPath();ctx.arc(x+cw-25*sc,y+ch*0.62,6*sc,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,0,60,0.9)';ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.restore();
+}
+
+function drawFrontCar(ctx,cx,cy,sc){
+  ctx.fillStyle='#0d0d1a';
+  ctx.beginPath();
+  ctx.moveTo(cx-180*sc,cy+60*sc);ctx.lineTo(cx-120*sc,cy-30*sc);
+  ctx.lineTo(cx-60*sc,cy-70*sc);ctx.lineTo(cx+60*sc,cy-70*sc);
+  ctx.lineTo(cx+120*sc,cy-30*sc);ctx.lineTo(cx+180*sc,cy+60*sc);ctx.closePath();
+  ctx.fill();ctx.strokeStyle='rgba(0,212,255,0.6)';ctx.lineWidth=1.5*sc;ctx.stroke();
+  // Headlights
+  [[-130*sc,0],[130*sc,0]].forEach(([ox,oy])=>{
+    ctx.shadowColor='#00d4ff';ctx.shadowBlur=25*sc;
+    ctx.fillStyle='rgba(0,212,255,0.85)';
+    ctx.beginPath();ctx.ellipse(cx+ox,cy+oy,30*sc,12*sc,0,0,Math.PI*2);ctx.fill();
+    ctx.shadowBlur=0;
+  });
+  // Grill
+  ctx.strokeStyle='rgba(0,212,255,0.4)';ctx.lineWidth=0.8*sc;
+  for(let i=-3;i<=3;i++){ctx.beginPath();ctx.moveTo(cx+i*20*sc,cy+5*sc);ctx.lineTo(cx+i*20*sc,cy+50*sc);ctx.stroke();}
+  // Wheels
+  [[-160*sc,60*sc],[160*sc,60*sc]].forEach(([ox,oy])=>{
+    ctx.beginPath();ctx.arc(cx+ox,cy+oy,45*sc,0,Math.PI*2);ctx.fillStyle='#111';ctx.fill();
+    ctx.strokeStyle='rgba(0,212,255,0.5)';ctx.lineWidth=1.5*sc;ctx.stroke();
+  });
+}
+
+function drawRearCar(ctx,cx,cy,sc){
+  ctx.fillStyle='#0d0d1a';
+  ctx.beginPath();
+  ctx.moveTo(cx-180*sc,cy+60*sc);ctx.lineTo(cx-130*sc,cy-30*sc);
+  ctx.lineTo(cx-50*sc,cy-75*sc);ctx.lineTo(cx+50*sc,cy-75*sc);
+  ctx.lineTo(cx+130*sc,cy-30*sc);ctx.lineTo(cx+180*sc,cy+60*sc);ctx.closePath();
+  ctx.fill();ctx.strokeStyle='rgba(0,212,255,0.6)';ctx.lineWidth=1.5*sc;ctx.stroke();
+  // Tailights
+  [[-120*sc,5*sc],[120*sc,5*sc]].forEach(([ox,oy])=>{
+    ctx.shadowColor='#ff003c';ctx.shadowBlur=20*sc;
+    ctx.fillStyle='rgba(255,0,60,0.85)';
+    ctx.beginPath();ctx.ellipse(cx+ox,cy+oy,28*sc,10*sc,0,0,Math.PI*2);ctx.fill();
+    ctx.shadowBlur=0;
+  });
+  // Exhaust
+  [[-40*sc,60*sc],[40*sc,60*sc]].forEach(([ox,oy])=>{
+    ctx.strokeStyle='rgba(0,212,255,0.6)';ctx.lineWidth=2*sc;
+    ctx.beginPath();ctx.arc(cx+ox,cy+oy,16*sc,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle='rgba(0,0,0,0.8)';ctx.fill();
+  });
+  // Spoiler
+  ctx.fillStyle='rgba(0,212,255,0.15)';
+  ctx.beginPath();ctx.rect(cx-120*sc,cy-95*sc,240*sc,10*sc);ctx.fill();
+  ctx.strokeStyle='rgba(0,212,255,0.6)';ctx.lineWidth=1*sc;ctx.stroke();
+  // Wheels
+  [[-160*sc,60*sc],[160*sc,60*sc]].forEach(([ox,oy])=>{
+    ctx.beginPath();ctx.arc(cx+ox,cy+oy,45*sc,0,Math.PI*2);ctx.fillStyle='#111';ctx.fill();
+    ctx.strokeStyle='rgba(255,0,60,0.5)';ctx.lineWidth=1.5*sc;ctx.stroke();
+  });
+}
+
+function drawMiniCar(ctx,w,h,color){
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='#0d0d1a';ctx.fillRect(0,0,w,h);
+  const cx=w/2,cy=h/2,sc=w/700;
+  ctx.fillStyle='#111';
+  ctx.beginPath();
+  ctx.moveTo(cx-160*sc,cy+40*sc);ctx.lineTo(cx-110*sc,cy-10*sc);ctx.lineTo(cx-40*sc,cy-38*sc);
+  ctx.lineTo(cx+40*sc,cy-38*sc);ctx.lineTo(cx+110*sc,cy-10*sc);ctx.lineTo(cx+160*sc,cy+40*sc);ctx.closePath();
+  ctx.fill();ctx.strokeStyle=color;ctx.lineWidth=1.2*sc;ctx.stroke();
+  ctx.shadowColor=color;ctx.shadowBlur=12*sc;
+  ctx.beginPath();ctx.arc(cx-140*sc,cy+38*sc,30*sc,0,Math.PI*2);ctx.fillStyle='#0a0a0a';ctx.fill();
+  ctx.strokeStyle=color;ctx.lineWidth=2*sc;ctx.stroke();
+  ctx.beginPath();ctx.arc(cx+140*sc,cy+38*sc,30*sc,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.shadowBlur=0;
+  const rg=ctx.createRadialGradient(cx,cy+55*sc,0,cx,cy+55*sc,130*sc);
+  rg.addColorStop(0,color.replace(')',',0.12)').replace('rgb','rgba'));rg.addColorStop(1,'transparent');
+  ctx.fillStyle=rg;ctx.fillRect(cx-160*sc,cy+20*sc,320*sc,50*sc);
+}
+
+let heroAnim;
+function animateHeroCar(){
+  const w=heroCanvas.width,h=heroCanvas.height;
+  carAngle+=0.008;
+  drawCar(hCtx,w,h,carAngle,carView,isDayMode);
+  if(engineAnim){
+    enginePhase+=0.15;
+    hCtx.globalAlpha=Math.max(0,Math.min(1,0.15+Math.sin(enginePhase)*0.08));
+    const eg=hCtx.createRadialGradient(w*0.5,h*0.78,0,w*0.5,h*0.78,80);
+    eg.addColorStop(0,'rgba(255,100,0,0.3)');eg.addColorStop(1,'transparent');
+    hCtx.fillStyle=eg;hCtx.fillRect(0,0,w,h);
+    hCtx.globalAlpha=1;
+  }
+  heroAnim=requestAnimationFrame(animateHeroCar);
+}
+animateHeroCar();
+
+// Counter animation
+function animCount(id,target,suffix,dec){
+  let v=0;const step=target/60;
+  const interval=setInterval(()=>{v=Math.min(v+step,target);
+    document.getElementById(id).textContent=dec?v.toFixed(1):Math.round(v)+suffix;
+    if(v>=target)clearInterval(interval);},16);
+}
+setTimeout(()=>{animCount('statHP',1200,'',false);animCount('statTQ',920,'',false);animCount('stat60',2.5,'',true);animCount('statVmax',248,'',false);},400);
+
+function setCarView(v){carView=v;document.querySelectorAll('.ctrl-btn').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');}
+function toggleDayNight(){isDayMode=!isDayMode;}
+function toggleEngineAnim(){engineAnim=!engineAnim;event.target.textContent=engineAnim?'ENGINE SFX ⏹':'ENGINE SFX ▶';}
+function smoothScrollTo(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth'});}
+function scrollTo(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth'});}
+
+// Parallax on mouse
+document.addEventListener('mousemove',e=>{
+  const mx=(e.clientX/window.innerWidth-0.5)*20;
+  const my=(e.clientY/window.innerHeight-0.5)*10;
+  if(heroCanvas){heroCanvas.style.transform=`translate(${mx*0.3}px,${my*0.3}px)`;}
+});
+
+// Nav active on scroll
+const sections=['hero','brands','builder','catalog','community','ai-center'];
+window.addEventListener('scroll',()=>{
+  const sy=window.scrollY;
+  sections.forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    const top=el.offsetTop-200,bot=top+el.offsetHeight;
+    if(sy>=top&&sy<bot){
+      document.querySelectorAll('.nav-links a').forEach(a=>a.classList.remove('active'));
+    }
+  });
+},{ passive:true});
+</script>
